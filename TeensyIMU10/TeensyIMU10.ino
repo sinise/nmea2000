@@ -14,12 +14,10 @@ RTIMUSettings *settings; // the settings object
 float magd = -5.0;
 boolean outputhdm = true; // magnetic heading
 boolean outputhdt = false; // true heading
-boolean outputrot = true; // rate of turn
-boolean outputshr = true; // pitch and roll
+boolean outputrot = false; // rate of turn
+boolean PGN127257 = true; // n2k altitude (pitch and roll)
 //  DISPLAY_INTERVAL sets the rate at which results are displayed
-
 #define DISPLAY_INTERVAL 300 // interval between pose displays
-
 #define SERIAL_PORT_SPEED 115200
 
 unsigned long lastDisplay;
@@ -143,67 +141,22 @@ void loop()
       }
       if (outputhdm == true)
       {
-        char hdmSentence[23];
-        byte csm;
-        PString strm(hdmSentence, sizeof(hdmSentence));
-        strm.print("$HCHDM,");
-        strm.print(hdm); // lround simply rounds out the decimal, since a single degree is fine enough of a resolution
         SetN2kMagneticHeading(N2kMsg, 0, DegToRad(hdm), DegToRad(-3.0), DegToRad(5.5));
         NMEA2000.SendMsg(N2kMsg);
-
-        strm.print(",M*");
-        csm = checksum(hdmSentence);
-        if (csm < 0x10)
-          strm.print('0');
-        strm.print(csm, HEX);
-        Serial.println(hdmSentence);
       }
-      if (outputhdt == true)
+      if (PGN127257)
       {
-        char hdtSentence[23];
-        byte cst;
-        PString strt(hdtSentence, sizeof(hdtSentence));
-        strt.print("$HCHDT,");
-        strt.print(hdt);
-        strt.print(",T*");
-        cst = checksum(hdtSentence);
-        if (cst < 0x10)
-          strt.print('0');
-        strt.print(cst, HEX);
-        Serial.println(hdtSentence);
+        SetN2kPGN127257(N2kMsg, 0, DegToRad(hdm), DegToRad(pitch), DegToRad(roll));
+        NMEA2000.SendMsg(N2kMsg);
       }
-
       if (outputrot == true)
       {
-        // ROT Rate of Turn //
-        char rotSentence[18];
-        byte csr;
-        PString strr(rotSentence, sizeof(rotSentence));
-        strr.print("$TIROT,");
-        strr.print(rot * 60); // multiply by 60, since ROT is measured in degrees per minute
-        strr.print(",A*");
-        csr = checksum(rotSentence);
-        if (csr < 0x10)
-          strr.print('0');
-        strr.print(csr, HEX);
-        Serial.println(rotSentence);
-      }
-      if (outputshr == true){
-        // SHR Pitch and Roll (no heave... yet...)//
-        char shrSentence [50];
-        byte csp;
-        PString strp(shrSentence, sizeof(shrSentence));
-        strp.print("$INSHR,,");
-        strp.print(hdt);
-        strp.print(",T,");
-        strp.print(roll);
-        strp.print(",");
-        strp.print(pitch);
-        strp.print(",,,,,1,0*");
-        csp = checksum(shrSentence);
-        if (csp < 0x10) strp.print('0');
-        strp.print(csp, HEX);
-        Serial.println(shrSentence);
+        SetN2kPGN127251(N2kMsg, 0, DegToRad(rot));
+        NMEA2000.SendMsg(N2kMsg);
+        
+        Serial.print(rot);
+        Serial.print(DegToRad(rot));
+
       }
     }
   }
